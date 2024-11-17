@@ -57,7 +57,7 @@ Each submodule (`part1.rs` and `part2.rs`) contains a function called `process` 
 ```rust
 /// day01/part1.rs
 pub fn process(_input: &str) -> usize {
-    todo!()
+    todo!() // Replace me with your implementation
 }
 ```
 
