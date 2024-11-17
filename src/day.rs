@@ -1,4 +1,6 @@
-#[derive(Debug)]
+use clap::Parser;
+
+#[derive(Parser, Debug, Clone)]
 pub enum Part {
     Part1,
     Part2,
@@ -13,7 +15,17 @@ impl From<Part> for &str {
     }
 }
 
-use clap::Parser;
+impl std::str::FromStr for Part {
+    type Err = InputError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_ref() {
+            "1" | "part1" => Ok(Part::Part1),
+            "2" | "part2" => Ok(Part::Part2),
+            _ => Err(InputError),
+        }
+    }
+}
+
 #[derive(Parser, Debug, Clone)]
 pub enum Day {
     Day01,

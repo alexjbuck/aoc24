@@ -1,6 +1,6 @@
 use std::io::prelude::*;
 use std::io::{self, ErrorKind};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use aoc24::day::{Day, Part};
 use clap::Parser;
@@ -10,12 +10,46 @@ use clap::Parser;
 struct Cli {
     #[arg(short)]
     pub day: Day,
+
+    #[arg(long)]
+    pub part1: bool,
+
+    #[arg(long)]
+    pub part2: bool,
 }
 
 fn main() {
-    let args = Cli::parse();
-    let input1 = prepare_input(&args.day, Part::Part1);
-    let input2 = prepare_input(&args.day, Part::Part2);
+    let mut args = Cli::parse();
+
+    if !&args.part1 && !args.part2 {
+        println!("No part selected, running part 1...");
+        args.part1 = true;
+    }
+
+    let mut input1: Option<String> = args
+        .part1
+        .then(|| prepare_input(&args.day, Part::Part1))
+        .flatten();
+
+    let mut input2: Option<String> = args
+        .part2
+        .then(|| prepare_input(&args.day, Part::Part2))
+        .flatten();
+
+    if args.part1 && input1.is_none() {
+        println!("Part 1 selected but no input provided, skipping...");
+        input1 = None
+    }
+    if args.part2 && input2.is_none() {
+        println!("Part 2 selected but no input provided, skipping...");
+        input2 = None
+    }
+
+    if input1.is_none() && input2.is_none() {
+        println!("No input provided for any part, exiting...");
+        return;
+    }
+
     match &args.day {
         Day::Day01 => aoc24::day01::run(input1, input2),
         Day::Day02 => aoc24::day02::run(input1, input2),
@@ -46,18 +80,26 @@ fn main() {
 }
 
 fn prepare_input(day: &Day, part: Part) -> Option<String> {
-    let part_filename = format!("inputs/{:?}_{:?}.txt", &day, &part);
-    if !PathBuf::from(&part_filename).is_file() {
-        return prompt_for_input(day, part);
+    let part_filepath = PathBuf::from(format!("inputs/{:?}/{:?}.txt", &day, &part));
+    let part_dir = part_filepath
+        .parent()
+        .expect("Failed to get parent directory");
+
+    if is_file_valid(&part_filepath) {
+        println!("Reading input from file {:?}...", part_filepath);
+        return Some(std::fs::read_to_string(part_filepath).expect("Failed to read part file"));
     }
-    let input = std::fs::read_to_string(part_filename).expect("Failed to read part file");
+    let input = prompt_for_input(day, &part)?;
+
     if input.is_empty() {
-        return prompt_for_input(day, part);
+        return None;
     }
+    std::fs::create_dir_all(part_dir).expect("Failed to create input directory");
+    std::fs::write(part_filepath, &input).expect("Failed to write part file");
     Some(input)
 }
 
-fn prompt_for_input(day: &Day, part: Part) -> Option<String> {
+fn prompt_for_input(day: &Day, part: &Part) -> Option<String> {
     println!(
         "No input file found for {:?} {:?}. Please enter the input once the editor opens. Press enter to continue...",
         day, part
@@ -80,4 +122,11 @@ fn prompt_for_input(day: &Day, part: Part) -> Option<String> {
             None
         }
     }
+}
+
+/// Check if the file exists and is not empty
+fn is_file_valid(path: impl AsRef<Path>) -> bool {
+    path.as_ref()
+        .metadata()
+        .map_or(false, |m| m.is_file() && m.len() > 0)
 }
