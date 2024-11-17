@@ -54,6 +54,33 @@ You do not need to modify `mod.rs`, you will be doing all of your work in either
 
 Each submodule (`part1.rs` and `part2.rs`) contains a function called `process` that takes as input a `&str` string slice. Implement your solution inside the `process` function.
 
+```rust
+/// day01/part1.rs
+pub fn process(_input: &str) -> usize {
+    todo!()
+}
+```
+
+If you're curious, the `mod.rs` for each day is just some glue code that conditions the inputs and runs `part1::process` and `part2::process`. This is the public interface exposed to the main application, defined in `src/main.rs`.
+
+```rust
+pub mod part1;
+pub mod part2;
+
+/// Run part 1 and part 2 for this module. If either input is the None variant, skip running it.
+pub fn run<T>(input1: Option<T>, input2: Option<T>)
+where
+    T: AsRef<str>,
+{
+    if let Some(input) = input1 {
+        println!("Part 1: {}", part1::process(input.as_ref()));
+    }
+    if let Some(input) = input2 {
+        println!("Part 2: {}", part2::process(input.as_ref()));
+    }
+}
+```
+
 ### How to run `aoc24` 
 
 With the repository cloned onto your computer, from within the repository folder, you can use `cargo run -- <command>`.
