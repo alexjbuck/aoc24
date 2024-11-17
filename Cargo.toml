@@ -1,33 +1,8 @@
-[workspace]
+[package]
 name = "aoc24"
 version = "0.1.0"
 edition = "2021"
-resolver = "2"
-members = [
-	"aoc24",
-	"day01",
-	"day02",
-	"day03",
-	"day04",
-	"day05",
-	"day06",
-	"day07",
-	"day08",
-	"day09",
-	"day10",
-	"day11",
-	"day12",
-	"day13",
-	"day14",
-	"day15",
-	"day16",
-	"day17",
-	"day18",
-	"day19",
-	"day20",
-	"day21",
-	"day22",
-	"day23",
-	"day24",
-	"day25",
-]
+
+[dependencies]
+clap = { version = "4.5.21", features = ["derive"] }
+edit = "0.1.5"
