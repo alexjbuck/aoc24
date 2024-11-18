@@ -1,6 +1,7 @@
 [package]
-name = "aoc-dev"
+name = "aocr"
 version = "0.2.0"
+authors = ["Alex Buck <alexjbuck@gmail.com>"]
 edition = "2021"
 
 [dependencies]
