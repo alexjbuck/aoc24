@@ -17,3 +17,8 @@ serde = { version = "1.0.215", features = ["derive"] }
 tempfile = "3.14.0"
 thiserror = "2.0.3"
 toml = "0.8.19"
+
+[profile.release]
+strip = true      # Automatically strip symbols from the binary.
+lto = true
+codegen-units = 1
