@@ -1,6 +1,6 @@
-# Advent of Code 2024 :crab: Rust Edition
+# Advent of Code Runner :crab: Rust Edition
 
-Thank you for being interested in my Advent of Code 2024 development tool!
+Thank you for being interested in my Advent of Code development tool! I built this ahead of Advent of Code 2024 to be a nice helper tool for keeping each day organized and separated. I hope you find it useful!
 
 ## Prerequisites
 
