@@ -5,8 +5,8 @@ use dialoguer::Editor;
 use std::fs;
 use std::path::PathBuf;
 
-pub async fn execute(day: u8, part: u8, input_path: Option<PathBuf>) -> Result<()> {
-    let runner = Runner::new()?;
+pub fn execute(day: u8, part: u8, input_path: Option<PathBuf>) -> Result<()> {
+    let runner = Runner::default();
 
     // Get input either from file or editor
     let input = if let Some(path) = input_path {

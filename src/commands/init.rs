@@ -4,14 +4,14 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub async fn execute(path: PathBuf) -> Result<()> {
+pub fn execute(path: PathBuf) -> Result<()> {
     // Create the workspace directory
     fs::create_dir_all(&path)?;
 
     // Create workspace Cargo.toml with all day crates as members
     let workspace_toml = r#"[workspace]
 members = [
-    "runner",".tmp*",
+    "runner",
     "day01", "day02", "day03", "day04", "day05",
     "day06", "day07", "day08", "day09", "day10",
     "day11", "day12", "day13", "day14", "day15",
@@ -49,7 +49,6 @@ Cargo.lock
 
 # Project specific
 /inputs/
-.tmp*
 "#;
     fs::write(path.join(".gitignore"), gitignore)?;
 
@@ -186,12 +185,12 @@ mod tests {
             .context("Failed to run git command")
     }
 
-    #[tokio::test]
-    async fn test_init_command() -> Result<()> {
+    #[test]
+    fn test_init_command() -> Result<()> {
         let temp_dir = TempDir::new()?;
 
         // Run init command
-        execute(temp_dir.path().to_path_buf()).await?;
+        execute(temp_dir.path().to_path_buf())?;
 
         // Verify workspace structure
         assert!(temp_dir.path().join("Cargo.toml").exists());

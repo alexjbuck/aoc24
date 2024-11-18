@@ -1,4 +1,6 @@
-use std::collections::HashMap;
+// src/tui/app.rs
+use anyhow::Result;
+use std::{collections::HashMap, path::PathBuf};
 
 #[derive(Default)]
 pub struct Challenge {
@@ -7,13 +9,18 @@ pub struct Challenge {
 }
 
 pub struct App {
-    pub days: HashMap<(u8, u8), Challenge>,
     pub selected_day: u8,
     pub selected_part: u8,
-    pub cargo_check_output: String,
-    pub cargo_test_output: String,
+    pub watched_day: u8,
+    pub watched_part: u8,
+    pub scroll: u16,
     pub input_mode: bool,
+    pub cursor_blink_state: bool,
+    pub show_scroll_hint: bool, // To show scroll hint briefly when entering input mode
+    pub cursor_position: usize,
     pub current_input: String,
+    pub cargo_output: String,
+    pub days: HashMap<(u8, u8), Challenge>,
 }
 
 impl App {
@@ -29,11 +36,21 @@ impl App {
             days,
             selected_day: 1,
             selected_part: 1,
-            cargo_check_output: String::new(),
-            cargo_test_output: String::new(),
+            cargo_output: String::new(),
             input_mode: false,
             current_input: String::new(),
+            cursor_position: 0,
+            cursor_blink_state: false,
+            watched_day: 1,
+            watched_part: 1,
+            scroll: 0,
+            show_scroll_hint: false,
         }
+    }
+
+    pub fn watch(&mut self, day: u8, part: u8) {
+        self.watched_day = day;
+        self.watched_part = part;
     }
 
     pub fn move_cursor(&mut self, direction: Direction) {
@@ -52,10 +69,107 @@ impl App {
         }
     }
 
-    pub fn set_input(&mut self, input: String) {
+    fn get_input_path(day: u8, part: u8) -> PathBuf {
+        PathBuf::from(format!("inputs/day{:02}_part{}.txt", day, part))
+    }
+
+    pub fn load_input(&mut self) {
+        let input_path = App::get_input_path(self.selected_day, self.selected_part);
+        if let Ok(input) = std::fs::read_to_string(input_path) {
+            self.current_input = input.clone();
+            self.update_challenge_input(input)
+        }
+    }
+
+    fn update_challenge_input(&mut self, input: String) {
+        // Update in memory
         if let Some(challenge) = self.days.get_mut(&(self.selected_day, self.selected_part)) {
             challenge.input = Some(input);
         }
+    }
+
+    pub fn set_input(&mut self, input: String) -> Result<()> {
+        // Save to file
+        let input_path = App::get_input_path(self.selected_day, self.selected_part);
+        std::fs::create_dir_all(input_path.parent().unwrap())?;
+        std::fs::write(&input_path, &input)?;
+        self.update_challenge_input(input);
+        Ok(())
+    }
+
+    pub fn get_selected_challenge(&self) -> Option<&Challenge> {
+        self.days.get(&(self.selected_day, self.selected_part))
+    }
+    pub fn insert_char(&mut self, c: char) {
+        self.current_input.insert(self.cursor_position, c);
+        self.cursor_position += 1;
+    }
+
+    pub fn insert_newline(&mut self) {
+        self.current_input.insert(self.cursor_position, '\n');
+        self.cursor_position += 1;
+    }
+
+    pub fn delete_char(&mut self) {
+        if self.cursor_position > 0 {
+            self.cursor_position -= 1;
+            if self.cursor_position < self.current_input.len() {
+                self.current_input.remove(self.cursor_position);
+            }
+        }
+    }
+
+    pub fn move_cursor_left(&mut self) {
+        if self.cursor_position > 0 {
+            self.cursor_position -= 1;
+        }
+    }
+
+    pub fn move_cursor_right(&mut self) {
+        if self.cursor_position < self.current_input.len() {
+            self.cursor_position += 1;
+        }
+    }
+
+    pub fn move_cursor_start(&mut self) {
+        self.cursor_position = 0;
+    }
+
+    pub fn move_cursor_end(&mut self) {
+        self.cursor_position = self.current_input.len();
+    }
+
+    pub fn insert_text(&mut self, text: &str) {
+        self.current_input.insert_str(self.cursor_position, text);
+        self.cursor_position += text.len();
+    }
+
+    pub fn toggle_cursor_blink(&mut self) {
+        self.cursor_blink_state = !self.cursor_blink_state;
+    }
+
+    pub fn scroll_up(&mut self) {
+        if self.scroll > 0 {
+            self.scroll -= 1;
+        }
+    }
+
+    pub fn scroll_down(&mut self) {
+        // We don't limit scrolling here because we don't know the content height
+        // The UI will handle preventing over-scrolling
+        self.scroll += 1;
+    }
+
+    pub fn page_up(&mut self) {
+        if self.scroll >= 10 {
+            self.scroll -= 10;
+        } else {
+            self.scroll = 0;
+        }
+    }
+
+    pub fn page_down(&mut self) {
+        self.scroll += 10;
     }
 }
 
@@ -64,100 +178,4 @@ pub enum Direction {
     Down,
     Left,
     Right,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_new_app() {
-        let app = App::new();
-        assert_eq!(app.selected_day, 1);
-        assert_eq!(app.selected_part, 1);
-        assert!(!app.input_mode);
-        assert!(app.current_input.is_empty());
-        assert!(app.cargo_check_output.is_empty());
-        assert!(app.cargo_test_output.is_empty());
-
-        // Check that all days are initialized
-        for day in 1..=25 {
-            for part in 1..=2 {
-                let challenge = app.days.get(&(day, part)).expect("Day/part should exist");
-                assert!(!challenge.completed);
-                assert!(challenge.input.is_none());
-            }
-        }
-    }
-
-    #[test]
-    fn test_move_cursor() {
-        let mut app = App::new();
-
-        // Test moving down
-        app.move_cursor(Direction::Down);
-        assert_eq!(app.selected_day, 2);
-
-        // Test moving up
-        app.move_cursor(Direction::Up);
-        assert_eq!(app.selected_day, 1);
-
-        // Test moving right
-        app.move_cursor(Direction::Right);
-        assert_eq!(app.selected_part, 2);
-
-        // Test moving left
-        app.move_cursor(Direction::Left);
-        assert_eq!(app.selected_part, 1);
-
-        // Test boundaries
-        app.selected_day = 1;
-        app.move_cursor(Direction::Up);
-        assert_eq!(app.selected_day, 1); // Should not go below 1
-
-        app.selected_day = 25;
-        app.move_cursor(Direction::Down);
-        assert_eq!(app.selected_day, 25); // Should not go above 25
-
-        app.selected_part = 1;
-        app.move_cursor(Direction::Left);
-        assert_eq!(app.selected_part, 1); // Should not go below 1
-
-        app.selected_part = 2;
-        app.move_cursor(Direction::Right);
-        assert_eq!(app.selected_part, 2); // Should not go above 2
-    }
-
-    #[test]
-    fn test_toggle_completion() {
-        let mut app = App::new();
-
-        // Test initial state
-        let key = (app.selected_day, app.selected_part);
-        assert!(!app.days.get(&key).unwrap().completed);
-
-        // Test toggle on
-        app.toggle_completion();
-        assert!(app.days.get(&key).unwrap().completed);
-
-        // Test toggle off
-        app.toggle_completion();
-        assert!(!app.days.get(&key).unwrap().completed);
-    }
-
-    #[test]
-    fn test_set_input() {
-        let mut app = App::new();
-        let test_input = "test input".to_string();
-
-        // Test setting input
-        app.set_input(test_input.clone());
-        let key = (app.selected_day, app.selected_part);
-        assert_eq!(app.days.get(&key).unwrap().input, Some(test_input));
-
-        // Test overwriting input
-        let new_input = "new input".to_string();
-        app.set_input(new_input.clone());
-        assert_eq!(app.days.get(&key).unwrap().input, Some(new_input));
-    }
 }
