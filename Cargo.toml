@@ -3,7 +3,7 @@ name = "aocr"
 description = "A simple task runner and support tool for Advent of Code challenges."
 repository = "https://github.com/alexjbuck/aocr"
 license = "MIT"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Alex Buck <alexjbuck@gmail.com>"]
 edition = "2021"
 
